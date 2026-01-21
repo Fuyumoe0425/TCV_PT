@@ -17,11 +17,34 @@ def load_cifar100_batch(file_path):
     return batch
 
 
+def download_cifar100_torchvision():
+    """Download CIFAR-100 dataset using torchvision."""
+    try:
+        import torchvision
+        import torchvision.transforms as transforms
+        
+        data_dir = './data'
+        os.makedirs(data_dir, exist_ok=True)
+        
+        print("Downloading CIFAR-100 dataset using torchvision...")
+        dataset = torchvision.datasets.CIFAR100(
+            root=data_dir,
+            train=True,
+            download=True
+        )
+        
+        cifar100_dir = os.path.join(data_dir, 'cifar-100-python')
+        print(f"Dataset downloaded to {data_dir}")
+        
+        return cifar100_dir
+    except ImportError:
+        print("Error: torchvision not installed.")
+        print("Please install with: pip install torchvision")
+        return None
+
+
 def download_cifar100():
     """Download CIFAR-100 dataset if not present."""
-    import urllib.request
-    import tarfile
-    
     data_dir = './data'
     cifar100_dir = os.path.join(data_dir, 'cifar-100-python')
     
@@ -29,22 +52,38 @@ def download_cifar100():
         print(f"CIFAR-100 dataset already exists at {cifar100_dir}")
         return cifar100_dir
     
-    os.makedirs(data_dir, exist_ok=True)
+    # Try using torchvision first
+    result = download_cifar100_torchvision()
+    if result:
+        return result
     
-    url = 'https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz'
-    tar_path = os.path.join(data_dir, 'cifar-100-python.tar.gz')
-    
-    print(f"Downloading CIFAR-100 dataset from {url}...")
-    urllib.request.urlretrieve(url, tar_path)
-    
-    print("Extracting dataset...")
-    with tarfile.open(tar_path, 'r:gz') as tar:
-        tar.extractall(data_dir)
-    
-    os.remove(tar_path)
-    print(f"Dataset downloaded and extracted to {cifar100_dir}")
-    
-    return cifar100_dir
+    # If torchvision doesn't work, try manual download
+    try:
+        import urllib.request
+        import tarfile
+        
+        os.makedirs(data_dir, exist_ok=True)
+        
+        url = 'https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz'
+        tar_path = os.path.join(data_dir, 'cifar-100-python.tar.gz')
+        
+        print(f"Downloading CIFAR-100 dataset from {url}...")
+        urllib.request.urlretrieve(url, tar_path)
+        
+        print("Extracting dataset...")
+        with tarfile.open(tar_path, 'r:gz') as tar:
+            tar.extractall(data_dir)
+        
+        os.remove(tar_path)
+        print(f"Dataset downloaded and extracted to {cifar100_dir}")
+        
+        return cifar100_dir
+    except Exception as e:
+        print(f"Error downloading dataset: {e}")
+        print("\nPlease manually download and extract the dataset:")
+        print("1. Download: https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz")
+        print("2. Extract to: ./data/cifar-100-python/")
+        return None
 
 
 def get_class_names(meta_file):
@@ -142,9 +181,18 @@ def main():
     # Download dataset if needed
     cifar100_dir = download_cifar100()
     
+    if not cifar100_dir or not os.path.exists(cifar100_dir):
+        print("\nDataset not available. Exiting.")
+        return
+    
     # Load training data
     train_file = os.path.join(cifar100_dir, 'train')
     meta_file = os.path.join(cifar100_dir, 'meta')
+    
+    if not os.path.exists(train_file):
+        print(f"Error: Training file not found at {train_file}")
+        print("Please ensure the CIFAR-100 dataset is properly extracted.")
+        return
     
     print("Loading CIFAR-100 training data...")
     train_batch = load_cifar100_batch(train_file)
