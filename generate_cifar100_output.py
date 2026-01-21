@@ -70,7 +70,12 @@ def create_synthetic_cifar100():
             for x in range(32):
                 idx = channel_start + y * 32 + x
                 # Create a diagonal gradient pattern
-                value = int((x + y) * 255 / 63) if i == 0 else int((x * y) * 255 / 1024) if i == 1 else int(abs(x - y) * 255 / 31)
+                if i == 0:  # Red channel: diagonal gradient
+                    value = int((x + y) * 255 / 63)
+                elif i == 1:  # Green channel: product gradient
+                    value = int((x * y) * 255 / 1024)
+                else:  # Blue channel: difference gradient
+                    value = int(abs(x - y) * 255 / 31)
                 sample_197_data[idx] = value
     
     data[197] = sample_197_data
@@ -221,8 +226,9 @@ def display_sample_info(sample_idx, data, fine_labels, coarse_labels, fine_names
     print("Bins (16 equal ranges from 0-255):")
     for i in range(len(hist)):
         bin_start = int(bins[i])
-        bin_end = int(bins[i+1])
-        print(f"  [{bin_start:3d}-{bin_end:3d}): {hist[i]:5d} pixels ({hist[i]/len(image_data)*100:5.2f}%)")
+        bin_end = int(bins[i+1]) - 1 if i < len(hist) - 1 else int(bins[i+1])
+        end_symbol = ']' if i == len(hist) - 1 else ')'
+        print(f"  [{bin_start:3d}-{bin_end:3d}{end_symbol}: {hist[i]:5d} pixels ({hist[i]/len(image_data)*100:5.2f}%)")
     print()
     
     print("=" * 80)
